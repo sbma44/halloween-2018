@@ -1,6 +1,9 @@
-DELAY = 50
+print("running scroll_middle.lua")
 
 tmr.unregister(6)
+ws2812_effects.stop()
+
+DELAY = 50
 
 buf_a = ws2812.newBuffer(75, 3)
 buf_b = ws2812.newBuffer(75, 3)

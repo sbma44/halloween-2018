@@ -1,6 +1,9 @@
-DELAY = 50
+print("running scroll.lua")
 
 tmr.unregister(6)
+ws2812_effects.stop()
+
+DELAY = 50
 
 for i=1,75,1 do
 	c = color_utils.hsv2grb(255, 255, (i-1) * 3)
