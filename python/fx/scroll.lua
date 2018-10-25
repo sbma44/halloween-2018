@@ -7,8 +7,8 @@ DELAY = 50
 
 for i=1,75,1 do
 	c = color_utils.hsv2grb(255, 255, (i-1) * 3)
-	strip_buffer[i] = c
-	strip_buffer[151-i] = c
+	strip_buffer:set(i, c)
+	strip_buffer:set(151-i, c)
 end
 
 function tic()

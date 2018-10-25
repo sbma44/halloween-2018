@@ -9,8 +9,8 @@ buf_a = ws2812.newBuffer(75, 3)
 buf_b = ws2812.newBuffer(75, 3)
 for i=1,75,1 do
 	c = color_utils.hsv2grb(255, 255, (i-1) * 3)
-	buf_a[i] = c
-	buf_b[76-i] = c
+	buf_a:set(i, c)
+	buf_b:set(76-i, c)
 end
 
 function tic()
