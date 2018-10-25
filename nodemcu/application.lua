@@ -23,6 +23,7 @@ function success(s)
 	tmr.alarm(6, 120, tmr.ALARM_AUTO, scan)
     end)
     ws:connect(string.format("ws://%s:8765", server))
+    ws:send(wifi.sta.getmac())
 end
 
 offset = 0
