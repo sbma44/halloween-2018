@@ -1,11 +1,13 @@
-SERVER = "10.1.1.2"
+SERVER = "192.168.10.51"
 
 function connect()
     tmr.unregister(6)
     ws = websocket.createClient()
     
     ws:on("connection", function(ws)
-        print(string.format("connected to %s", server))
+	sec, usec, rate = rtctime.get()
+        print(string.format("connected to %s at %s", SERVER, sec))
+	ws:send(wifi.sta.getmac())
     end)
     
     ws:on("receive", function(_, msg, opcode)
@@ -21,11 +23,7 @@ function connect()
 
     print(string.format("connecting to %s:8765", SERVER))
     ws:connect(string.format("ws://%s:8765", SERVER))
-    ws:send(wifi.sta.getmac())
 end
 
-sntp.sync()
-sec, usec, rate = rtctime.get()
-print(string.format("finished NTP sync, current time is %d", sec))
-
-tmr.alarm(6, 0, tmr.ALARM_SINGLE, connect)
+--dofile('scroll.lua')
+sntp.sync(nil, connect)
