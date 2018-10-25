@@ -7,7 +7,7 @@ DELAY = 200
 
 buf_a = ws2812.newBuffer(75, 3)
 buf_b = ws2812.newBuffer(75, 3)
-for j=1,75 do
+for j = 1, 75 do
     input_b = (j - 1) * 3
     g, r, b = color_utils.hsv2grb(255, 255, input_b)
     buf_a:set(j, g, r, b)
