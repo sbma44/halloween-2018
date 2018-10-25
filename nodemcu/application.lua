@@ -42,4 +42,8 @@ function scan()
     offset = offset + 1
 end
 
+sntp.sync()
+sec, usec, rate = rtctime.get()
+print("finished NTP sync, current time is ", sec)
+
 tmr.alarm(6, 120, tmr.ALARM_AUTO, scan)
