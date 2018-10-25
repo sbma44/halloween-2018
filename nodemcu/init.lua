@@ -12,6 +12,11 @@ function startup()
 end
 
 function listap(t)
+    -- set to red upon ssid list receipt
+    ws2812_effects.set_color(0,255,0)
+    ws2812_effects.set_mode("static")
+    ws2812_effects.start()
+
     print("got back AP list")
     found = false
     for bssid, ssid in pairs(t) do
@@ -42,6 +47,7 @@ function wifi_check()
         print("Waiting...")
         tmr.alarm(0, 2000, 0, startup)
 
+        -- set to orange after getting an IP
         ws2812_effects.set_color(100,255,0)
         ws2812_effects.set_mode("static")
         ws2812_effects.start()

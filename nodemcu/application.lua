@@ -1,49 +1,31 @@
-prefix, last_byte = string.match(wifi.sta.getip(), "(%d+\.%d+\.%d+)\.(%d+)")
+SERVER = "10.1.1.2"
 
-srv = nil
-
-function success(s)
-    winner = (offset + 99) % 256
-    offset = -1
+function connect()
     tmr.unregister(6)
-    server = string.format("%s.%s", prefix, winner)
-    print(string.format("found server at %s", server))
     ws = websocket.createClient()
+    
     ws:on("connection", function(ws)
         print(string.format("connected to %s", server))
-	node.output(tonet, 1)
     end)
+    
     ws:on("receive", function(_, msg, opcode)
-	pcall(loadstring(msg))
+	   print("received payload")
+       pcall(loadstring(msg))
     end)
+    
     ws:on("close", function(_, status)
-	print("connection closed")
-	node.output(nil)
-	ws = nil
-	tmr.alarm(6, 120, tmr.ALARM_AUTO, scan)
+	   print("connection closed")
+	   ws = nil
+	   tmr.alarm(6, 1000, tmr.ALARM_SINGLE, connect)
     end)
-    ws:connect(string.format("ws://%s:8765", server))
+
+    print(string.format("connecting to %s:8765", SERVER))
+    ws:connect(string.format("ws://%s:8765", SERVER))
     ws:send(wifi.sta.getmac())
-end
-
-offset = 0
-function scan()
-    if srv ~= nil then
-	srv:on("connection", nil)
-	srv = nil
-    end
-
-    srv = net.createConnection(net.TCP, 0)
-    srv:on("connection", success)
-
-    practical_offset = (offset + 100) % 255
-    print(string.format("trying %s.%s", prefix, practical_offset))
-    srv:connect(10321, string.format("%s.%s", prefix, practical_offset))
-    offset = offset + 1
 end
 
 sntp.sync()
 sec, usec, rate = rtctime.get()
-print("finished NTP sync, current time is ", sec)
+print(string.format("finished NTP sync, current time is %d", sec))
 
-tmr.alarm(6, 120, tmr.ALARM_AUTO, scan)
+tmr.alarm(6, 0, tmr.ALARM_SINGLE, connect)
