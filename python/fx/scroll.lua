@@ -6,9 +6,9 @@ ws2812_effects.stop()
 DELAY = 50
 
 for i=1,75,1 do
-	c = color_utils.hsv2grb(255, 255, (i-1) * 3)
-	strip_buffer:set(i, c)
-	strip_buffer:set(151-i, c)
+	g, r, b = color_utils.hsv2grb(255, 255, (i-1) * 3)
+	strip_buffer:set(i, g, r, b)
+	strip_buffer:set(151-i, g, r, b)
 end
 
 function tic()

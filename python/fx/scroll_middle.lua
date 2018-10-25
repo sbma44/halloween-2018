@@ -8,9 +8,9 @@ DELAY = 50
 buf_a = ws2812.newBuffer(75, 3)
 buf_b = ws2812.newBuffer(75, 3)
 for i=1,75,1 do
-	c = color_utils.hsv2grb(255, 255, (i-1) * 3)
-	buf_a:set(i, c)
-	buf_b:set(76-i, c)
+	g, r, b = color_utils.hsv2grb(255, 255, (i-1) * 3)
+	buf_a:set(i, g, r, b)
+	buf_b:set(76-i, g, r, b)
 end
 
 function tic()
