@@ -12,7 +12,6 @@ function connect()
     
     ws:on("receive", function(_, msg, opcode)
        print("received payload")
-       print(msg)
        pcall(loadstring(msg))
     end)
     
@@ -26,5 +25,4 @@ function connect()
     ws:connect(string.format("ws://%s:8765", SERVER))
 end
 
---dofile('scroll.lua')
 sntp.sync(nil, connect)
