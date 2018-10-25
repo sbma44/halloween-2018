@@ -20,26 +20,26 @@ function listap(t)
     print("got back AP list")
     found = false
     for bssid, ssid in pairs(t) do
-	ssid = string.match(ssid, "([^,]+),-")
-	if wifi_credentials[ssid] ~= nil then
-	    print(string.format("Connecting to %s", ssid))
-	    wifi.setmode(wifi.STATION)
-	    sta_config = {}
-	    sta_config.ssid = ssid
-	    sta_config.pwd = wifi_credentials[ssid]
-	    wifi.sta.config(sta_config)
-	    found = true
-	end
+        ssid = string.match(ssid, "([^,]+),-")
+        if wifi_credentials[ssid] ~= nil and not found then
+            print(string.format("Connecting to %s", ssid))
+            wifi.setmode(wifi.STATION)
+            sta_config = {}
+            sta_config.ssid = ssid
+            sta_config.pwd = wifi_credentials[ssid]
+            wifi.sta.config(sta_config)
+            found = true
+        end
     end
     if not found then
-	tmr.alarm(2, 1000, tmr.ALARM_SINGLE, function() wifi.sta.getap(1, listap) end)
+        tmr.alarm(2, 1000, tmr.ALARM_SINGLE, function() wifi.sta.getap(1, listap) end)
     end
 end
 
 function wifi_check()
     if wifi.sta.getip() == nil then
         -- print("Waiting for IP address...")
-	tmr.alarm(1, 1000, tmr.ALARM_SINGLE, wifi_check)
+    tmr.alarm(1, 1000, tmr.ALARM_SINGLE, wifi_check)
     else
         tmr.stop(1)
         print("WiFi connection established, IP address: " .. wifi.sta.getip())
