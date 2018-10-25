@@ -8,71 +8,58 @@ import asyncio
 import websockets
 import pystache
 
-class MyTCPHandler(socketserver.BaseRequestHandler):
-    """
-    The request handler class for our server.
+INTERVAL = 5.0
+MAC_LOOKUP = {
+    'abcdefgh': 1
+}
 
-    It is instantiated once per connection to the server, and must
-    override the handle() method to implement communication to the
-    client.
-    """
-
-    def handle(self):
-        try:
-            # self.request is the TCP socket connected to the client
-            self.data = self.request.recv(1024).strip()
-            print("{} wrote:".format(self.client_address[0]))
-            print(self.data)
-            # just send back the same data, but upper-cased
-            self.request.sendall(self.data.upper())
-        except:
-            pass
-
-class MyTCPServer(socketserver.TCPServer):
-    def server_bind(self):
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.allow_reuse_address = True
-        self.socket.bind(self.server_address)
 
 if __name__ == "__main__":
     
-    if os.fork():
-        HOST, PORT = "0.0.0.0", 10321
+    FX = os.listdir('./fx')
+    print('found fx files: {}'.format(' '.join(FX)))
 
-        # Create the server, binding to localhost on port 10321
-        with MyTCPServer((HOST, PORT), MyTCPHandler) as server:
-            # Activate the server; this will keep running until you
-            # interrupt the program with Ctrl-C
-            server.serve_forever()
-    else:
-        INTERVAL = 5.0
+    sockets = {}
+    async def register(websocket, path):
+        print("connection!")
+        try:
+            async for m in websocket:
+                print("got MAC {}".format(m))
+                sockets[m] = websocket
+        finally:
+            await(unregister(websocket))
 
-        sockets = set()
-        meta = {}
-        async def register(websocket, path):
-            print("connection")
-            sockets.add(websocket)
-            try:
-                async for m in websocket:
-                    print('got message {}'.format(m))
-            finally:
-                await(unregister(websocket))
+    async def unregister(websocket):
+        target_mac = None
+        for mac in sockets:
+            if sockets[mac] == websocket:
+                target_mac = mac
+        if target_mac is not None:
+            del dockets[target_mac]
 
-        async def unregister(websocket):
-            sockets.remove(websocket)
+    async def tic():
+        sent_something = False
+        with open('application.lua') as f:
+            fx = ';'.join(f.readlines())
 
-        async def tic():
-            sent_something = False
-            with open('application.lua') as f:
-                msg = pystache.render(';'.join(f.readlines()), { 'r': random.randint(0, 255), 'g': random.randint(0, 255), 'b': random.randint(0, 255) }) 
+        if len(sockets):
+            to_send = [] # queue up (websocket, msg) tuples
+            for mac in sockets:
+                vars = {
+                    'offset': MAC_LOOKUP.get(mac, 0),
+                    'r': random.randint(0, 255),
+                    'g': random.randint(0, 255),
+                    'b': random.randint(0, 255),
+                    'delay': 0
+                }
+                to_send.append((sockets[mac], pystache.render(fx, vars)))
+            await asyncio.wait([ws.send(msg) for (ws, msg) in to_send])
 
-            if len(sockets):
-                await asyncio.wait([s.send(msg) for s in sockets])
-            await asyncio.sleep(INTERVAL)
-            asyncio.ensure_future(tic())
-
-        asyncio.get_event_loop().run_until_complete(websockets.serve(register, '0.0.0.0', 8765))
-	
+        await asyncio.sleep(INTERVAL)
         asyncio.ensure_future(tic())
 
-        asyncio.get_event_loop().run_forever()        
+    asyncio.get_event_loop().run_until_complete(websockets.serve(register, '0.0.0.0', 8765))
+
+    asyncio.ensure_future(tic())
+
+    asyncio.get_event_loop().run_forever()
