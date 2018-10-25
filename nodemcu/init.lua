@@ -14,8 +14,12 @@ end
 function listap(t)
     print("got back AP list")
     found = false
+    for ssid in pairs(wifi_credentials) do
+        print(ssid)
+    end
     for bssid, ssid in pairs(t) do
 	ssid = string.match(ssid, "([^,]+),-")
+	print('comparing #%s#', ssid)
 	if wifi_credentials[ssid] ~= nil then
 	    print(string.format("Connecting to %s", ssid))
 	    wifi.setmode(wifi.STATION)
@@ -55,5 +59,6 @@ ws2812_effects.set_color(0,0,0)
 ws2812_effects.set_mode("static")
 ws2812_effects.start()
 
+wifi.setmode(wifi.STATION)
 wifi.sta.getap(1, listap)
 tmr.alarm(1, 1000, tmr.ALARM_SINGLE, wifi_check)

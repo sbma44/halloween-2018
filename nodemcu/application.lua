@@ -25,6 +25,24 @@ function success(s)
     ws:connect(string.format("ws://%s:8765", server))
 end
 
+function success2()
+    tmr.unregister(6)
+    ws = websocket.createClient()
+    ws:on("connection", function(ws)
+	node.output(tonet, 1)
+    end)
+    ws:on("receive", function(_, msg, opcode)
+	pcall(loadstring(msg))
+    end)
+    ws:on("close", function(_, status)
+	print("connection closed")
+	node.output(nil)
+	ws = nil
+	tmr.alarm(6, 120, tmr.ALARM_AUTO, scan)
+    end)
+    ws:connect(string.format("ws://10.1.11.143:8765", server))
+end
+
 offset = 0
 function scan()
     if srv ~= nil then
@@ -41,4 +59,4 @@ function scan()
     offset = offset + 1
 end
 
-tmr.alarm(6, 120, tmr.ALARM_AUTO, scan)
+tmr.alarm(6, 120, tmr.ALARM_AUTO, success2)
