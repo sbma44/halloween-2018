@@ -3,6 +3,7 @@
 import json
 import random
 import os
+import sys
 import math
 import time
 import asyncio
@@ -12,7 +13,9 @@ import spotipy, spotipy.util
 
 if __name__ == "__main__":
     
-    FX = os.listdir('./fx')
+    DEBUG = '--debug' in sys.argv
+
+    FX = [f for f in os.listdir('./fx')]
     print('found fx files: {}'.format(' '.join(FX)))
 
     sockets = {}
@@ -23,6 +26,7 @@ if __name__ == "__main__":
         'abcdefgh': 1
     }
     CYCLE_DELAY = 10.0
+    sem = asyncio.Semaphore(1)
 
     SPOTIFY_SCOPES = [
         'user-read-playback-state',
@@ -31,41 +35,52 @@ if __name__ == "__main__":
         'user-library-read'
     ]
 
+    # set up spotify API object
     with open('spotify_creds.json') as f:
         creds = json.load(f)
     token = spotipy.util.prompt_for_user_token(creds.get('user'),' '.join(SPOTIFY_SCOPES), creds.get('client_id'), client_secret=creds.get('client_secret'), redirect_uri='http://localhost')
     sp = spotipy.Spotify(auth=token)
 
+    # connection handler
     async def register(websocket, path):
         print("connection!")
         try:
             async for m in websocket:
                 print("got MAC {}".format(m))
                 sockets[m] = websocket
+                await(tic((m,)))
         finally:
             await(unregister(websocket))
 
+    # disconnection handler
     async def unregister(websocket):
         target_mac = None
         for mac in sockets:
             if sockets[mac] == websocket:
                 target_mac = mac
         if target_mac is not None:
-            del dockets[target_mac]
+            del sockets[target_mac]
 
-    async def tic():
+    # send messages on some interval
+    async def tic(macs=[]):
         sent_something = False
         global meta
 
-        if len(sockets) and ((time.time() - meta['LAST_SEND']) > CYCLE_DELAY):
-            
+        if len(sockets):
+            # dumb cycle through fx
             rand = meta['index']
             meta['index'] = (meta['index'] + 1) % len(FX)
             print("sending {}".format(FX[rand]))
             with open('fx/{}'.format(FX[rand])) as f:
-                fx = ';'.join([x for x in f.readlines() if len(x.strip()) > 0])
+                fx = ''.join([x for x in f.readlines() if len(x.strip())])
             
             to_send = [] # queue up (websocket, msg) tuples
+            # filter to individual mac(s) if called by connection handler (don't refresh all strands)
+            mac_list = sockets.keys()
+            if len(macs):
+                mac_list = [m for m in mac_list if m in macs]
+
+            # send queued messages
             for mac in sockets:
                 vars = {
                     'offset': MAC_LOOKUP.get(mac, 0),
@@ -81,15 +96,21 @@ if __name__ == "__main__":
             if sent_something:
                 meta['LAST_SEND'] = time.time()
 
-        print("tic!")
+        # refresh spotify info
+        if not DEBUG:
+            track = sp.current_user_playing_track()
+            remaining = (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0
+        else:
+            remaining = 5.0
 
-        track = sp.current_user_playing_track()
-        remaining = (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0
-
-        print('waiting {} seconds'.format(remaining))
-
-        await asyncio.sleep(remaining)
-        asyncio.ensure_future(tic())
+        # only schedule the next tic if one hasn't been called during processing this one
+        if not sem.locked():
+            async with sem:
+                print('tic! waiting {} seconds...'.format(remaining))
+                await asyncio.sleep(remaining)
+                meta['task'] = asyncio.ensure_future(tic())
+        else:
+            print('existing callback detected, avoiding duplication')
 
     asyncio.get_event_loop().run_until_complete(websockets.serve(register, '0.0.0.0', 8765))
 
