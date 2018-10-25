@@ -1,1 +1,3 @@
 .venv
+spotify_creds.json
+.cache-*
