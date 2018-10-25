@@ -15,16 +15,21 @@ if __name__ == "__main__":
     
     DEBUG = '--debug' in sys.argv
 
-    FX = [f for f in os.listdir('./fx')]
+    if DEBUG:
+        print('*** DEBUG MODE ***')
+        FX = ['debug.lua']
+    else:
+        FX = [f for f in os.listdir('./fx') if 'debug.lua' not in f]
+    FX = ['diamond.lua']
     print('found fx files: {}'.format(' '.join(FX)))
 
     sockets = {}
     global meta
     meta = { 'LAST_SEND': 0, 'index': 0 }
     TIC_INTERVAL = 1.0
-    MAC_LOOKUP = {
-        'abcdefgh': 1
-    }
+    MAC_LOOKUP = [
+        'abcdefgh'
+    ]
     CYCLE_DELAY = 10.0
     sem = asyncio.Semaphore(1)
 
@@ -81,13 +86,14 @@ if __name__ == "__main__":
                 mac_list = [m for m in mac_list if m in macs]
 
             # send queued messages
-            for mac in sockets:
+            for (i, mac) in enumerate(sorted(sockets.keys())):
                 vars = {
-                    'offset': MAC_LOOKUP.get(mac, 0),
+                    'offset': DEBUG and i or (MAC_LOOKUP.index(mac) if mac in MAC_LOOKUP else -1),
                     'r': random.randint(0, 255),
                     'g': random.randint(0, 255),
                     'b': random.randint(0, 255),
-                    'wait_until': 0
+                    'h': random.randint(0, 360),
+                    'wait_until': time.time() + 1.0
                 }
                 to_send.append((sockets[mac], pystache.render(fx, vars)))
                 sent_something = True

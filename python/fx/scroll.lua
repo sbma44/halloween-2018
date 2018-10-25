@@ -5,7 +5,7 @@ ws2812_effects.stop()
 DELAY = 200
 for j=1,75 do
     input_b = (j - 1) * 3
-    g, r, b = color_utils.hsv2grb(255, 255, input_b)
+    g, r, b = color_utils.hsv2grb(0, 255, input_b)
     strip_buffer:set(j, g, r, b)
     strip_buffer:set(151-j, g, r, b)
 end
