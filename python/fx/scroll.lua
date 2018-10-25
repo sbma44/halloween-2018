@@ -2,13 +2,12 @@ print("running scroll.lua")
 
 tmr.unregister(6)
 ws2812_effects.stop()
-
 DELAY = 50
-
-for i=1,75,1 do
-	g, r, b = color_utils.hsv2grb(255, 255, (i-1) * 3)
-	strip_buffer:set(i, g, r, b)
-	strip_buffer:set(151-i, g, r, b)
+for j=1,75 do
+        input_b = (j - 1) * 3
+	g, r, b = color_utils.hsv2grb(255, 255, input_b)
+	strip_buffer:set(j, g, r, b)
+	strip_buffer:set(151-j, g, r, b)
 end
 
 function tic()
