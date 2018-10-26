@@ -1,4 +1,8 @@
 SERVER = "192.168.10.51"
+ssid, pwd, bssid_set, bssid = wifi.sta.getconfig()
+if servers[ssid] ~= nil then
+    SERVER = servers[ssid]
+end
 
 function connect()
     tmr.unregister(6)
