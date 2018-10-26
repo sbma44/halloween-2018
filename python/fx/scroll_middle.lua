@@ -3,7 +3,7 @@ print("running scroll_middle.lua")
 tmr.unregister(6)
 ws2812_effects.stop()
 
-DELAY = 200
+DELAY = 50
 
 buf_a = ws2812.newBuffer(75, 3)
 buf_b = ws2812.newBuffer(75, 3)
@@ -16,8 +16,8 @@ end
 
 function tic()
     ws2812.write(buf_a .. buf_b)
-    buf_a:shift(-1, ws2812.SHIFT_CIRCULAR)
-    buf_b:shift(1, ws2812.SHIFT_CIRCULAR)
+    buf_a:shift(-2, ws2812.SHIFT_CIRCULAR)
+    buf_b:shift(2, ws2812.SHIFT_CIRCULAR)
 end
 
 tmr.alarm(6, DELAY, tmr.ALARM_AUTO, tic)
