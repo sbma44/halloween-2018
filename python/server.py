@@ -20,7 +20,6 @@ if __name__ == "__main__":
         FX = ['debug.lua']
     else:
         FX = [f for f in os.listdir('./fx') if 'debug.lua' not in f]
-    #FX = ['diamond.lua']
     print('found fx files: {}'.format(' '.join(FX)))
 
     sockets = {}
