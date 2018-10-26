@@ -20,7 +20,7 @@ if __name__ == "__main__":
         FX = ['debug.lua']
     else:
         FX = [f for f in os.listdir('./fx') if 'debug.lua' not in f]
-    FX = ['diamond.lua']
+    #FX = ['diamond.lua']
     print('found fx files: {}'.format(' '.join(FX)))
 
     sockets = {}
@@ -28,7 +28,12 @@ if __name__ == "__main__":
     meta = { 'LAST_SEND': 0, 'index': 0 }
     TIC_INTERVAL = 1.0
     MAC_LOOKUP = [
-        'abcdefgh'
+        '5c:cf:7f:53:d8:ab', #D
+        '5c:cf:7f:53:d6:f0', #F
+        '5c:cf:7f:53:d8:b0', #A
+        '5c:cf:7f:53:d6:1c', #C
+        '5c:cf:7f:53:d9:16', #B
+        '5c:cf:7f:53:d3:fe', #E
     ]
     CYCLE_DELAY = 10.0
     sem = asyncio.Semaphore(1)
@@ -48,12 +53,13 @@ if __name__ == "__main__":
 
     # connection handler
     async def register(websocket, path):
-        print("connection!")
         try:
             async for m in websocket:
-                print("got MAC {}".format(m))
+                print("connection from {}".format(m))
+                already_present = m in sockets
                 sockets[m] = websocket
-                await(tic((m,)))
+                if already_present:
+                    await(tic((m,)))
         finally:
             await(unregister(websocket))
 
@@ -86,14 +92,16 @@ if __name__ == "__main__":
                 mac_list = [m for m in mac_list if m in macs]
 
             # send queued messages
+            stable_h = random.randint(0, 360)
             for (i, mac) in enumerate(sorted(sockets.keys())):
                 vars = {
-                    'offset': DEBUG and i or (MAC_LOOKUP.index(mac) if mac in MAC_LOOKUP else -1),
+                    'offset': MAC_LOOKUP.index(mac) if mac in MAC_LOOKUP else -1,
                     'r': random.randint(0, 255),
                     'g': random.randint(0, 255),
                     'b': random.randint(0, 255),
                     'h': random.randint(0, 360),
-                    'wait_until': time.time() + 1.0
+                    'stable_h': stable_h,
+                    'wait_until': time.time() + 2.0
                 }
                 to_send.append((sockets[mac], pystache.render(fx, vars)))
                 sent_something = True
@@ -103,11 +111,11 @@ if __name__ == "__main__":
                 meta['LAST_SEND'] = time.time()
 
         # refresh spotify info
+        remaining = 15.0
         if not DEBUG:
             track = sp.current_user_playing_track()
-            remaining = (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0
-        else:
-            remaining = 5.0
+            if track:
+                remaining = (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0
 
         # only schedule the next tic if one hasn't been called during processing this one
         if not sem.locked():
