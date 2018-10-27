@@ -6,7 +6,7 @@ DELAY = 25
 strip_buffer:fill(0,0,0)
 for j=1,70 do
     input_b = (j - 1) * 2
-    g, r, b = color_utils.hsv2grb(0, 255, input_b)
+    g, r, b = color_utils.hsv2grb({{stable_h}}, 255, input_b)
     strip_buffer:set(j, g, r, b)
     strip_buffer:set(141-j, g, r, b)
 end

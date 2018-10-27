@@ -15,8 +15,8 @@ SPOTIFY_SCOPES = [
 token = spotipy.util.prompt_for_user_token(creds.get('user'),' '.join(SPOTIFY_SCOPES), creds.get('client_id'), client_secret=creds.get('client_secret'), redirect_uri='http://localhost')
 if token:
     sp = spotipy.Spotify(auth=token)
-    print(json.dumps(sp.current_user_playing_track(), indent=4))
-
+    #print(json.dumps(sp.current_user_playing_track(), indent=4))
+    print(json.dumps(sp.user_playlist(creds.get('user'), 'spotify:user:1216663148:playlist:63zBPWdtXyY1PUqz1qWA1Y'), indent=4)) 
 # {
 #     "timestamp": 1540434393382,
 #     "context": {

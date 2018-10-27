@@ -8,8 +8,8 @@ DELAY = 50
 buf_a = ws2812.newBuffer(75, 3)
 buf_b = ws2812.newBuffer(75, 3)
 for j = 1, 75 do
-    input_b = (j - 1) * 3
-    g, r, b = color_utils.hsv2grb(0, 255, input_b)
+    input_b = (j - 1) * 2
+    g, r, b = color_utils.hsv2grb({{stable_h}}, 255, input_b)
     buf_a:set(j, g, r, b)
     buf_b:set(76-j, g, r, b)
 end

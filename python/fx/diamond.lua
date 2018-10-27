@@ -22,18 +22,6 @@ for j = 1, 75, 1 do
     end
 end
 
-if {{offset}} > 0 and {{offset}} < 5 then
-    buf_a:shift(-1 * BAND_WIDTH, ws2812.SHIFT_CIRCULAR)
-    buf_b:shift(BAND_WIDTH, ws2812.SHIFT_CIRCULAR)
-    count = count + BAND_WIDTH
-end
-
-if {{offset}} > 1 and {{offset}} < 4 then
-    buf_a:shift(-1 * BAND_WIDTH, ws2812.SHIFT_CIRCULAR)
-    buf_b:shift(BAND_WIDTH, ws2812.SHIFT_CIRCULAR)
-    count = count + BAND_WIDTH
-end
-
 function tic()
     ws2812.write(buf_a .. buf_b)
     buf_a:shift(-1)
@@ -52,7 +40,7 @@ strip_buffer:fill(0, 0, 0)
 ws2812.write(strip_buffer)
 
 function start()
-	print("starting diamond effect")
+	print("starting main loop")
 	tmr.alarm(6, DELAY, tmr.ALARM_AUTO, tic)
 end
 
