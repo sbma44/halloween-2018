@@ -12,10 +12,6 @@ import websockets
 import pystache
 import spotipy, spotipy.util
 
-def get_playlist(sp):
-    plo = sp.user_playlist(creds.get('user'), 'spotify:user:1216663148:playlist:63zBPWdtXyY1PUqz1qWA1Y')
-    return [t['track']['name'] for t in plo['tracks']['items']]
-
 if __name__ == "__main__":
     
     DEBUG = '--debug' in sys.argv
@@ -55,11 +51,6 @@ if __name__ == "__main__":
         creds = json.load(f)
     token = spotipy.util.prompt_for_user_token(creds.get('user'),' '.join(SPOTIFY_SCOPES), creds.get('client_id'), client_secret=creds.get('client_secret'), redirect_uri='http://localhost')
     sp = spotipy.Spotify(auth=token)
-
-    PLAYLIST = get_playlist(sp)
-    print('Found playlist tracks:')
-    for t in PLAYLIST:
-        print('    - {}'.format(t))
 
     # connection handler
     async def register(websocket, path):
@@ -107,9 +98,9 @@ if __name__ == "__main__":
             meta['index'] = (meta['index'] + 1) % len(FX)
 
             # no thriller until it's time
-            if 'thriller' in PLAYLIST[(meta['track_index'] + 1) % len(PLAYLIST)].lower():
+            if 'thriller' in meta['track_name'].lower():
                 selected = 'thriller.lua'
-                meta['thriller'] = True
+                meta['thriller'] = Truecs
             else:
                 while 'thriller' in FX[meta['index']]:
                     meta['index'] = (meta['index'] + 1) % len(FX)
@@ -156,11 +147,8 @@ if __name__ == "__main__":
         remaining = 30.0
         if not DEBUG:
             track = sp.current_user_playing_track()
+            meta['last_track_name'] = meta['track_name']
             meta['track_name'] = track.get('item', {}).get('name')
-            try:
-                meta['track_index'] = PLAYLIST.index(track_name)
-            except:
-                meta['track_index'] = 0
             if track and track.get('is_playing'):
                 remaining = (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0
             print('current track: {}'.format(meta['track_name'])
