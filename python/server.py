@@ -12,17 +12,44 @@ import websockets
 import pystache
 import spotipy, spotipy.util
 
+class SpotifyHolder(object):    
+    def __init__(self, filename='spotify_creds.json', mock=False):
+        SPOTIFY_SCOPES = [
+            'user-read-playback-state',
+            'user-read-currently-playing',
+            'playlist-read-private',
+            'user-library-read'
+        ]
+        with open(filename) as f:
+            creds = json.load(f)
+        token = spotipy.util.prompt_for_user_token(creds.get('user'),' '.join(SPOTIFY_SCOPES), creds.get('client_id'), client_secret=creds.get('client_secret'), redirect_uri='http://localhost')
+        self.sp = spotipy.Spotify(auth=token)
+        self.calls = []
+
+        
+    def get_track(self):
+        self.calls.append(time.time())
+        self.calls = [c for c in self.calls if (time.time() - c < 60.0)]
+        return self.sp.current_user_playing_track()
+
+    def recent_call_count(self):
+        return len(self.calls)
+
+def log(l):
+    print('[{}] {}'.format(datetime.datetime.now().isoformat(), l))
+
 if __name__ == "__main__":
     
     DEBUG = '--debug' in sys.argv
+    OFFLINE = '--offline' in sys.argv
 
     if DEBUG:
-        print('*** DEBUG MODE ***')
+        log('*** DEBUG MODE ***')
         #FX = [f for f in os.listdir('./fx') if f.split('.')[-1] == 'lua']
         FX = ['bak/debug.lua']
     else:
         FX = [f for f in os.listdir('./fx') if f.split('.')[-1] == 'lua']
-    print('found fx files: {}'.format(' '.join(FX)))
+    log('found fx files: {}'.format(' '.join(FX)))
 
     sockets = {}
     global meta
@@ -37,28 +64,20 @@ if __name__ == "__main__":
         '5c:cf:7f:53:d6:f0', #F
     ]
     CYCLE_DELAY = 10.0
-    sem = asyncio.Semaphore(1)
-
-    SPOTIFY_SCOPES = [
-        'user-read-playback-state',
-        'user-read-currently-playing',
-        'playlist-read-private',
-        'user-library-read'
-    ]
+    sem = asyncio.Semaphore(1)    
 
     # set up spotify API object
-    with open('spotify_creds.json') as f:
-        creds = json.load(f)
-    token = spotipy.util.prompt_for_user_token(creds.get('user'),' '.join(SPOTIFY_SCOPES), creds.get('client_id'), client_secret=creds.get('client_secret'), redirect_uri='http://localhost')
-    sp = spotipy.Spotify(auth=token)
+    sp = SpotifyHolder()
 
     # connection handler
     async def register(websocket, path):
+        global meta
         try:
             async for m in websocket:
-                print("connection from {}".format(m))
+                log("connection from {}".format(m))
                 already_present = m in sockets
                 sockets[m] = websocket
+                meta['LAST_CONNECTION'] = time.time()
                 if already_present:
                     await(tic((m,)))
         finally:
@@ -78,7 +97,9 @@ if __name__ == "__main__":
         sent_something = False
         global meta
 
-        if len(sockets) == 6:
+        time_since_connection = time.time() - meta.get('LAST_CONNECTION', time.time())
+        if (OFFLINE or len(sockets) == 6 or time_since_connection > 30) and (meta.get('last_track_name') != meta.get('track_name')):
+
             # dumb cycle through fx
             rand = meta['index']
             selected = FX[meta['index']]
@@ -100,13 +121,13 @@ if __name__ == "__main__":
             # no thriller until it's time
             if 'thriller' in meta['track_name'].lower():
                 selected = 'thriller.lua'
-                meta['thriller'] = Truecs
+                meta['thriller'] = True
             else:
                 while 'thriller' in FX[meta['index']]:
                     meta['index'] = (meta['index'] + 1) % len(FX)
                     selected = FX[meta['index']]
 
-            print("sending {}".format(selected))
+            log("sending {}".format(selected))
             with open('fx/{}'.format(selected)) as f:
                 fx = ''.join([x for x in f.readlines() if len(x.strip())])
 
@@ -138,30 +159,32 @@ if __name__ == "__main__":
                 
                 to_send.append((sockets[mac], pystache.render(fx, vars)))
                 sent_something = True
-            await asyncio.wait([ws.send(msg) for (ws, msg) in to_send])
+            
+            if not OFFLINE:
+                await asyncio.wait([ws.send(msg) for (ws, msg) in to_send])        
 
-            if sent_something:
+            if OFFLINE or sent_something:
                 meta['LAST_SEND'] = time.time()
 
         # refresh spotify info
-        remaining = 10.0
-        if not DEBUG:
-            track = sp.current_user_playing_track()
-            meta['last_track_name'] = meta.get('track_name')
-            if track:
-                if track.get('is_playing'):
-                    meta['track_name'] = track.get('item', {}).get('name')
-                    remaining = min(remaining, (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0)
-                else:
-                    meta['track_name'] = 'N/A'
-                    if meta['LAST_SEND'] == 0: # don't hammer the API every second if we are starting w/ nothing playing
-                        meta['LAST_SEND'] = time.time()
-            print('current track: {}, last track: {}'.format(meta.get('track_name', 'N/A'), meta.get('last_track_name', 'N/A')))
+        remaining = 10.0        
+        track = sp.get_track()
+        meta['last_track_name'] = meta.get('track_name')
+        if track:
+            if track.get('is_playing'):
+                meta['track_name'] = track.get('item', {}).get('name')
+                remaining = min(remaining, (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0)
+                if meta.get('last_track_name') != meta.get('track_name'):
+                    remaining = 0.01
+            else:
+                meta['track_name'] = 'N/A'
+                if meta['LAST_SEND'] == 0: # don't hammer the API every second if we are starting w/ nothing playing
+                    meta['LAST_SEND'] = time.time()
         if meta['LAST_SEND'] == 0:
             remaining = 1
 
         # only schedule the next tic if one hasn't been called during processing this one
-        print('tic! waiting {} seconds...'.format(remaining))
+        log('current track: {}, last track: {}, spotify calls in last 60s: {}, waiting {}s'.format(meta.get('track_name', 'N/A'), meta.get('last_track_name', 'N/A'), sp.recent_call_count(), remaining))        
         await asyncio.sleep(remaining)
         meta['task'] = asyncio.ensure_future(tic())
 
