@@ -22,7 +22,6 @@ if __name__ == "__main__":
 
     if DEBUG:
         print('*** DEBUG MODE ***')
-        #FX = ['debug.lua']
         FX = [f for f in os.listdir('./fx') if f.split('.')[-1] == 'lua']
     else:
         FX = [f for f in os.listdir('./fx') if f.split('.')[-1] == 'lua']
@@ -30,7 +29,7 @@ if __name__ == "__main__":
 
     sockets = {}
     global meta
-    meta = { 'LAST_SEND': 0, 'index': 0 }
+    meta = { 'LAST_SEND': 0, 'index': 0, 'track_index': 0 }
     TIC_INTERVAL = 1.0
     MAC_LOOKUP = [
         '5c:cf:7f:53:d8:ab', #D
@@ -87,7 +86,7 @@ if __name__ == "__main__":
         sent_something = False
         global meta
 
-        if len(sockets) == 6:
+        if len(sockets) == 5:
             # dumb cycle through fx
             rand = meta['index']
             selected = FX[meta['index']]
@@ -97,6 +96,7 @@ if __name__ == "__main__":
                 while 'rainbow' in FX[meta['index']]:
                     meta['index'] = (meta['index'] + 1) % len(FX)
                     selected = FX[meta['index']]
+
 
             # no cycling bars until thriller
             if not meta.get('thriller', False):
@@ -114,6 +114,8 @@ if __name__ == "__main__":
                 while 'thriller' in FX[meta['index']]:
                     meta['index'] = (meta['index'] + 1) % len(FX)
                     selected = FX[meta['index']]
+
+            print('a')
 
             print("sending {}".format(selected))
             with open('fx/{}'.format(selected)) as f:
@@ -156,16 +158,18 @@ if __name__ == "__main__":
         remaining = 30.0
         if not DEBUG:
             track = sp.current_user_playing_track()
-            meta['track_name'] = track.get('item', {}).get('name')
-            try:
-                meta['track_index'] = PLAYLIST.index(track_name)
-            except:
-                meta['track_index'] = 0
-            if track and track.get('is_playing'):
-                remaining = (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0
-            print('current track: {}'.format(meta['track_name'])
+            if track:
+                meta['track_name'] = track.get('item', {}).get('name')
+                try:
+                    meta['track_index'] = PLAYLIST.index(track_name)
+                except:
+                    meta['track_index'] = 0
+                if track and track.get('is_playing'):
+                    remaining = (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0
+                print('current track: {}'.format(meta['track_name']))
+        
         if meta['LAST_SEND'] == 0:
-            remaining = 1
+            remaining = 5
 
         # only schedule the next tic if one hasn't been called during processing this one
         print('tic! waiting {} seconds...'.format(remaining))
