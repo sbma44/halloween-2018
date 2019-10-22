@@ -5,7 +5,7 @@ ws2812_effects.stop()
 
 ws2812_effects.set_speed(100)
 ws2812_effects.set_brightness(50)
-g, r, b = color_effects.colorWheel({{offset}} * 60)
+g, r, b = color_utils.hsv2grb({{offset}} * 60, 255, 255)
 ws2812_effects.set_color(g, r, b)
 ws2812_effects.set_mode("static")
 ws2812_effects.start()

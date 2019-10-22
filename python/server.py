@@ -18,8 +18,8 @@ if __name__ == "__main__":
 
     if DEBUG:
         print('*** DEBUG MODE ***')
-        #FX = ['debug.lua']
-        FX = [f for f in os.listdir('./fx') if f.split('.')[-1] == 'lua']
+        #FX = [f for f in os.listdir('./fx') if f.split('.')[-1] == 'lua']
+        FX = ['bak/debug.lua']
     else:
         FX = [f for f in os.listdir('./fx') if f.split('.')[-1] == 'lua']
     print('found fx files: {}'.format(' '.join(FX)))
@@ -29,12 +29,12 @@ if __name__ == "__main__":
     meta = { 'LAST_SEND': 0, 'index': 0 }
     TIC_INTERVAL = 1.0
     MAC_LOOKUP = [
-        '5c:cf:7f:53:d8:ab', #D
-        '5c:cf:7f:53:d6:f0', #F
         '5c:cf:7f:53:d8:b0', #A
-        '5c:cf:7f:53:d6:1c', #C
         '5c:cf:7f:53:d9:16', #B
+        '5c:cf:7f:53:d6:1c', #C
+        '5c:cf:7f:53:d8:ab', #D
         '5c:cf:7f:53:d3:fe', #E
+        '5c:cf:7f:53:d6:f0', #F
     ]
     CYCLE_DELAY = 10.0
     sem = asyncio.Semaphore(1)
@@ -84,13 +84,13 @@ if __name__ == "__main__":
             selected = FX[meta['index']]
             
             # no rainbows before midnight
-            if datetime.datetime.now().hour > 6:
+            if not DEBUG and datetime.datetime.now().hour > 6:
                 while 'rainbow' in FX[meta['index']]:
                     meta['index'] = (meta['index'] + 1) % len(FX)
                     selected = FX[meta['index']]
 
             # no cycling bars until thriller
-            if not meta.get('thriller', False):
+            if not DEBUG and not meta.get('thriller', False):
                 while 'bars' in FX[meta['index']]:
                     meta['index'] = (meta['index'] + 1) % len(FX)
                     selected = FX[meta['index']]
@@ -144,14 +144,19 @@ if __name__ == "__main__":
                 meta['LAST_SEND'] = time.time()
 
         # refresh spotify info
-        remaining = 30.0
+        remaining = 10.0
         if not DEBUG:
             track = sp.current_user_playing_track()
-            meta['last_track_name'] = meta['track_name']
-            meta['track_name'] = track.get('item', {}).get('name')
-            if track and track.get('is_playing'):
-                remaining = (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0
-            print('current track: {}'.format(meta['track_name'])
+            meta['last_track_name'] = meta.get('track_name')
+            if track:
+                if track.get('is_playing'):
+                    meta['track_name'] = track.get('item', {}).get('name')
+                    remaining = min(remaining, (track.get('item', {}).get('duration_ms') - track.get('progress_ms')) / 1000.0)
+                else:
+                    meta['track_name'] = 'N/A'
+                    if meta['LAST_SEND'] == 0: # don't hammer the API every second if we are starting w/ nothing playing
+                        meta['LAST_SEND'] = time.time()
+            print('current track: {}, last track: {}'.format(meta.get('track_name', 'N/A'), meta.get('last_track_name', 'N/A')))
         if meta['LAST_SEND'] == 0:
             remaining = 1
 
