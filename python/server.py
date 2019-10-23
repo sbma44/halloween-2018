@@ -98,7 +98,7 @@ if __name__ == "__main__":
         global meta
 
         time_since_connection = time.time() - meta.get('LAST_CONNECTION', time.time())
-        if (OFFLINE or len(sockets) == 6 or time_since_connection > 30) and (meta.get('last_track_name') != meta.get('track_name')):
+        if (OFFLINE or len(sockets) == 6 or time_since_connection > 30) and (meta.get('LAST_SEND') == 0 or (meta.get('last_track_name') != meta.get('track_name'))):
 
             # dumb cycle through fx
             rand = meta['index']
